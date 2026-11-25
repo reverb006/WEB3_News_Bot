@@ -1,0 +1,26 @@
+services:
+  radar:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: web3-security-radar
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    volumes:
+      # Persist SQLite database across container restarts
+      - ./data:/app/data
+      # Persist application logs
+      - ./logs:/app/logs
+      # Persist generated auditor case studies, archives & daily digests
+      - ./reports:/app/reports
+      # Persist generated Foundry PoC test skeletons
+      - ./pocs:/app/pocs
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DATABASE_PATH=/app/data/radar.db
+      - LOG_FILE=/app/logs/radar.log
+      - WEB_HOST=0.0.0.0
+      - WEB_PORT=8000

@@ -1,0 +1,1410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Web3 Security Radar — Auditor Threat Intelligence Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #07090e;
+      --card-bg: #0f1523;
+      --card-border: #1e293b;
+      --card-hover: #182235;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent-indigo: #6366f1;
+      --accent-cyan: #06b6d4;
+      --accent-emerald: #10b981;
+      --accent-rose: #ef4444;
+      --accent-amber: #f59e0b;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* Header */
+    header {
+      background: rgba(15, 21, 35, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--card-border);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      padding: 0.85rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-weight: 800;
+      font-size: 1.15rem;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-icon {
+      font-size: 1.4rem;
+      background: linear-gradient(135deg, var(--accent-indigo), var(--accent-cyan));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .pulse-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 9999px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      background: rgba(16, 185, 129, 0.12);
+      color: var(--accent-emerald);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .pulse-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent-emerald);
+      box-shadow: 0 0 8px var(--accent-emerald);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(1.2); }
+    }
+
+    /* Navigation Tabs */
+    nav.tabs {
+      display: flex;
+      gap: 0.5rem;
+      background: rgba(15, 23, 42, 0.6);
+      padding: 0.3rem;
+      border-radius: 10px;
+      border: 1px solid var(--card-border);
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 0.45rem 1rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .tab-btn:hover {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .tab-btn.active {
+      color: #fff;
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(6, 182, 212, 0.3));
+      border: 1px solid rgba(99, 102, 241, 0.5);
+      box-shadow: 0 0 12px rgba(99, 102, 241, 0.2);
+    }
+
+    /* Container */
+    main {
+      flex: 1;
+      max-width: 1380px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 1.5rem 1.5rem 3rem;
+    }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; animation: fadeIn 0.25s ease; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 1.35rem 1.5rem;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+
+    .stat-card:hover {
+      border-color: rgba(99, 102, 241, 0.4);
+      transform: translateY(-2px);
+    }
+
+    .stat-card::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, var(--accent-indigo), var(--accent-cyan));
+    }
+
+    .stat-title {
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .stat-value {
+      font-size: 1.85rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: #fff;
+    }
+
+    .stat-sub {
+      margin-top: 0.4rem;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    /* Dashboard Panels */
+    .dashboard-panels {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    @media (max-width: 950px) {
+      .dashboard-panels { grid-template-columns: 1fr; }
+    }
+
+    .panel {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 1.5rem;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.25rem;
+    }
+
+    .panel-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* Breakdown Bars */
+    .bar-item {
+      margin-bottom: 1rem;
+    }
+
+    .bar-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.82rem;
+      font-weight: 600;
+      margin-bottom: 0.35rem;
+    }
+
+    .bar-track {
+      background: rgba(255, 255, 255, 0.06);
+      height: 8px;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* Table styling */
+    .table-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+
+    .search-box {
+      background: #090e1a;
+      border: 1px solid var(--card-border);
+      padding: 0.55rem 1rem;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 0.85rem;
+      width: 320px;
+      max-width: 100%;
+      outline: none;
+    }
+
+    .search-box:focus {
+      border-color: var(--accent-indigo);
+    }
+
+    .filter-pills {
+      display: flex;
+      gap: 0.4rem;
+    }
+
+    .filter-pill {
+      background: #090e1a;
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      padding: 0.4rem 0.85rem;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .filter-pill.active {
+      background: var(--accent-indigo);
+      color: #fff;
+      border-color: var(--accent-indigo);
+    }
+
+    .table-container {
+      overflow-x: auto;
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      background: var(--card-bg);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.85rem;
+    }
+
+    th {
+      background: #0c1220;
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 0.9rem 1.1rem;
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    td {
+      padding: 0.9rem 1.1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      color: var(--text-main);
+    }
+
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.25rem 0.55rem;
+      border-radius: 6px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      font-family: var(--font-mono);
+    }
+
+    .badge-critical { background: rgba(239, 68, 68, 0.15); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.4); }
+    .badge-high { background: rgba(245, 158, 11, 0.15); color: #fcd34d; border: 1px solid rgba(245, 158, 11, 0.4); }
+    .badge-medium { background: rgba(59, 130, 246, 0.15); color: #93c5fd; border: 1px solid rgba(59, 130, 246, 0.4); }
+    .badge-info { background: rgba(148, 163, 184, 0.15); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.4); }
+
+    .tag-proto {
+      background: rgba(99, 102, 241, 0.15);
+      color: #c7d2fe;
+      padding: 0.2rem 0.5rem;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.75rem;
+    }
+
+    .btn-action {
+      background: #1e293b;
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 0.35rem 0.7rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn-action:hover {
+      background: var(--accent-indigo);
+      border-color: var(--accent-indigo);
+    }
+
+    .btn-source {
+      background: rgba(14, 165, 233, 0.12);
+      border: 1px solid rgba(14, 165, 233, 0.35);
+      color: #38bdf8;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .btn-source:hover {
+      background: #0ea5e9;
+      color: #fff;
+      border-color: #0ea5e9;
+    }
+
+    .btn-source.disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    .btn-audit {
+      background: rgba(99, 102, 241, 0.12);
+      border: 1px solid rgba(99, 102, 241, 0.35);
+      color: #a5b4fc;
+    }
+
+    .btn-audit:hover {
+      background: var(--accent-indigo);
+      color: #fff;
+      border-color: var(--accent-indigo);
+    }
+
+    .select-box {
+      background: #090e1a;
+      border: 1px solid var(--card-border);
+      padding: 0.45rem 0.85rem;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 0.82rem;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .select-box:focus {
+      border-color: var(--accent-indigo);
+    }
+
+    .date-chip {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 0.76rem;
+      color: #94a3b8;
+      background: rgba(255, 255, 255, 0.04);
+      padding: 0.2rem 0.45rem;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+
+    .pagination-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 1rem 0.5rem 0.5rem 0.5rem;
+    }
+
+    .pagination-info {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+
+    .pagination-btns {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .page-btn {
+      background: #090e1a;
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      padding: 0.35rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .page-btn:hover:not(:disabled) {
+      background: var(--accent-indigo);
+      color: #fff;
+      border-color: var(--accent-indigo);
+    }
+
+    .page-btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    .page-current {
+      font-size: 0.8rem;
+      color: var(--text-main);
+      padding: 0 0.5rem;
+    }
+
+    .btn-primary-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      width: 100%;
+      padding: 0.75rem 1rem;
+      background: linear-gradient(135deg, #0284c7, #2563eb);
+      color: #fff;
+      font-weight: 700;
+      font-size: 0.9rem;
+      border-radius: 8px;
+      text-decoration: none;
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+
+    .btn-primary-link:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(37, 99, 235, 0.45);
+    }
+
+    .source-card {
+      background: #090e1a;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    /* Modal / Slide-over Drawer */
+    .drawer-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      z-index: 100;
+      display: none;
+      align-items: center;
+      justify-content: flex-end;
+    }
+
+    .drawer-overlay.active { display: flex; }
+
+    .drawer {
+      background: #0f1523;
+      border-left: 1px solid var(--card-border);
+      width: 700px;
+      max-width: 90vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes slideIn {
+      from { transform: translateX(100%); }
+      to { transform: translateX(0); }
+    }
+
+    .drawer-header {
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--card-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .drawer-body {
+      padding: 1.5rem;
+      overflow-y: auto;
+      flex: 1;
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+
+    .drawer-close {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+
+    pre.code-block {
+      background: #070a12;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 1rem;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      color: #e2e8f0;
+      overflow-x: auto;
+      margin: 1rem 0;
+      position: relative;
+    }
+
+    .copy-btn {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      background: #1e293b;
+      border: none;
+      color: #fff;
+      font-size: 0.7rem;
+      padding: 0.3rem 0.6rem;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    /* Q&A Chat Tab */
+    .qa-container {
+      display: flex;
+      flex-direction: column;
+      height: calc(100vh - 160px);
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    .qa-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .qa-bubble {
+      max-width: 80%;
+      padding: 1rem 1.25rem;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    .qa-bubble.user {
+      align-self: flex-end;
+      background: linear-gradient(135deg, #4f46e5, #4338ca);
+      color: #fff;
+    }
+
+    .qa-bubble.bot {
+      align-self: flex-start;
+      background: #151d30;
+      border: 1px solid var(--card-border);
+      color: #e2e8f0;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .qa-bubble.bot pre {
+      background: #090e1a;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      overflow-x: auto;
+      margin: 0.6rem 0;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      border: 1px solid var(--card-border);
+      white-space: pre;
+    }
+
+    .qa-bubble.bot code {
+      font-family: var(--font-mono);
+      background: rgba(99, 102, 241, 0.15);
+      color: #a5b4fc;
+      padding: 0.15rem 0.35rem;
+      border-radius: 4px;
+      font-size: 0.85rem;
+    }
+
+    .qa-input-bar {
+      padding: 1rem 1.5rem;
+      background: #090e1a;
+      border-top: 1px solid var(--card-border);
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    .qa-input {
+      flex: 1;
+      background: #111827;
+      border: 1px solid var(--card-border);
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 0.9rem;
+      outline: none;
+    }
+
+    .qa-input:focus { border-color: var(--accent-indigo); }
+
+    .qa-send-btn {
+      background: linear-gradient(135deg, var(--accent-indigo), var(--accent-cyan));
+      border: none;
+      color: #fff;
+      padding: 0 1.5rem;
+      border-radius: 8px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    /* Watchlist Tab */
+    .watchlist-box {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 1.5rem;
+    }
+
+    .watch-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+      margin-top: 1.25rem;
+    }
+
+    .watch-chip {
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(99, 102, 241, 0.4);
+      color: #c7d2fe;
+      padding: 0.4rem 0.85rem;
+      border-radius: 9999px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .chip-del {
+      background: transparent;
+      border: none;
+      color: #ef4444;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 1rem;
+      line-height: 1;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="brand">
+      <span class="brand-icon">🛡️</span>
+      <span>WEB3 SECURITY RADAR</span>
+      <div class="pulse-badge">
+        <span class="pulse-dot"></span>
+        <span>DAEMON ONLINE</span>
+      </div>
+    </div>
+
+    <nav class="tabs">
+      <button class="tab-btn active" onclick="switchTab('overview')">📊 Overview</button>
+      <button class="tab-btn" onclick="switchTab('incidents')">🛡️ Incidents & Exploits</button>
+      <button class="tab-btn" onclick="switchTab('watchlist')">🎯 VIP Watchlist</button>
+      <button class="tab-btn" onclick="switchTab('qa')">🤖 Auditor Q&A</button>
+      <button class="tab-btn" onclick="switchTab('archives')">📁 Knowledge Archives</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- TAB 1: OVERVIEW -->
+    <div id="tab-overview" class="tab-content active">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-title">
+            <span>Cumulative Losses Tracked</span>
+            <span>💰</span>
+          </div>
+          <div class="stat-value" id="val-total-loss">$0.00</div>
+          <div class="stat-sub">Across documented smart contract exploits</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-title">
+            <span>Incidents Corroborated</span>
+            <span>🎯</span>
+          </div>
+          <div class="stat-value" id="val-incidents">0</div>
+          <div class="stat-sub">Multi-source deduplicated incident records</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-title">
+            <span>AI Classifications</span>
+            <span>🤖</span>
+          </div>
+          <div class="stat-value" id="val-classified">0</div>
+          <div class="stat-sub"><span id="val-pending">0</span> pending classification</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-title">
+            <span>VIP Watchlist Targets</span>
+            <span>🎯</span>
+          </div>
+          <div class="stat-value" id="val-watchlist">0</div>
+          <div class="stat-sub">Active real-time alert triggers</div>
+        </div>
+      </div>
+
+      <div class="dashboard-panels">
+        <!-- Severity Breakdown -->
+        <div class="panel">
+          <div class="panel-header">
+            <h3 class="panel-title"><span>📊</span> Incident Severity Breakdown</h3>
+          </div>
+          <div id="severity-bars"></div>
+        </div>
+
+        <!-- Threat Categories -->
+        <div class="panel">
+          <div class="panel-header">
+            <h3 class="panel-title"><span>🏷️</span> Classification Categories</h3>
+          </div>
+          <div id="category-bars"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: INCIDENTS -->
+    <div id="tab-incidents" class="tab-content">
+      <div class="table-controls">
+        <div style="display:flex; flex-wrap:wrap; gap:0.6rem; align-items:center;">
+          <input type="text" id="inc-search" class="search-box" placeholder="Search protocol, vector, URL, year (e.g. 2021, Curve)..." oninput="onSearchChange()">
+          <div class="filter-pills">
+            <button class="filter-pill active" onclick="setSeverityFilter('ALL')">All</button>
+            <button class="filter-pill" onclick="setSeverityFilter('CRITICAL')">🚨 Critical</button>
+            <button class="filter-pill" onclick="setSeverityFilter('HIGH')">⚠️ High</button>
+            <button class="filter-pill" onclick="setSeverityFilter('MEDIUM')">🔶 Medium</button>
+            <button class="filter-pill" onclick="setSeverityFilter('INFO')">🔬 Research</button>
+          </div>
+        </div>
+
+        <div style="display:flex; flex-wrap:wrap; gap:0.6rem; align-items:center;">
+          <div style="display:flex; align-items:center; gap:0.4rem;">
+            <label for="inc-sort" style="font-size: 0.78rem; color: var(--text-muted); font-weight: 600;">Sort:</label>
+            <select id="inc-sort" class="select-box" onchange="changeSort(this.value)">
+              <option value="date-desc" selected>📅 Date: Newest First</option>
+              <option value="date-asc">📅 Date: Oldest First</option>
+              <option value="severity-desc">🚨 Severity: Critical First</option>
+              <option value="loss-desc">💰 Loss: Highest First</option>
+              <option value="loss-asc">💰 Loss: Lowest First</option>
+              <option value="id-desc">🆔 ID: Highest First</option>
+            </select>
+          </div>
+
+          <div style="display:flex; align-items:center; gap:0.4rem;">
+            <label for="inc-limit" style="font-size: 0.78rem; color: var(--text-muted); font-weight: 600;">Per page:</label>
+            <select id="inc-limit" class="select-box" onchange="changeLimit(this.value)">
+              <option value="25">25</option>
+              <option value="50" selected>50</option>
+              <option value="100">100</option>
+              <option value="all">All (1,000+)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 65px;">ID</th>
+              <th style="width: 110px;">📅 Date</th>
+              <th style="width: 95px;">Severity</th>
+              <th style="width: 140px;">Protocol</th>
+              <th>Incident Title</th>
+              <th style="width: 130px;">Estimated Loss</th>
+              <th style="width: 140px;">Attack Vector</th>
+              <th style="width: 200px; text-align: center;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="incidents-tbody">
+            <tr><td colspan="8" style="text-align:center; padding: 2rem;">Loading incidents from database...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination Toolbar -->
+      <div class="pagination-bar">
+        <div class="pagination-info" id="pagination-info">Showing 0 of 0 incidents</div>
+        <div class="pagination-btns">
+          <button class="page-btn" id="btn-first" onclick="goToPage(1)" title="First Page">« First</button>
+          <button class="page-btn" id="btn-prev" onclick="goToPage(currentPage - 1)" title="Previous Page">‹ Prev</button>
+          <span class="page-current">Page <b id="page-num">1</b> of <b id="page-total">1</b></span>
+          <button class="page-btn" id="btn-next" onclick="goToPage(currentPage + 1)" title="Next Page">Next ›</button>
+          <button class="page-btn" id="btn-last" onclick="goToPage(totalPages)" title="Last Page">Last »</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: WATCHLIST -->
+    <div id="tab-watchlist" class="tab-content">
+      <div class="watchlist-box">
+        <h3 style="margin-bottom: 0.5rem;">🎯 VIP Protocol & Vulnerability Watchlist</h3>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem;">
+          Configure keywords or protocols you are actively auditing (e.g. <code>flash loan</code>, <code>Aave</code>, <code>read-only reentrancy</code>). Whenever an incoming report matches, you receive an immediate highlighted Telegram push alert.
+        </p>
+
+        <div style="display:flex; gap:0.5rem; max-width: 480px;">
+          <input type="text" id="new-watch-input" class="search-box" placeholder="Add keyword (e.g. flash loan, Uniswap)..." style="flex:1;">
+          <button class="btn-action" style="padding: 0 1.2rem; background: var(--accent-indigo);" onclick="addWatchKeyword()">+ Add Target</button>
+        </div>
+
+        <div class="watch-chips" id="watchlist-chips"></div>
+      </div>
+    </div>
+
+    <!-- TAB 4: AUDITOR Q&A -->
+    <div id="tab-qa" class="tab-content">
+      <div class="qa-container">
+        <div class="qa-messages" id="qa-messages">
+          <div class="qa-bubble bot">
+            👋 <b>Welcome to Web3 Security Radar Auditor AI.</b><br>
+            I have full technical access to your local SQLite threat database, attack vector taxonomies, and deep case studies.<br><br>
+            Try asking:
+            <ul style="margin-left: 1.2rem; margin-top: 0.4rem;">
+              <li><i>"How was the Liquid Network exploit executed and what was the root cause?"</i></li>
+              <li><i>"What invariant checks should I write for a flash loan lending pool?"</i></li>
+              <li><i>"Explain the reentrancy flaw in Vyper compiler that hit Curve pools"</i></li>
+            </ul>
+          </div>
+        </div>
+        <div class="qa-input-bar">
+          <input type="text" id="qa-input" class="qa-input" placeholder="Ask a smart-contract security or exploit question..." onkeydown="if(event.key==='Enter') sendQAMessage()">
+          <button class="qa-send-btn" onclick="sendQAMessage()">Send</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 5: ARCHIVES -->
+    <div id="tab-archives" class="tab-content">
+      <div style="display:flex; gap:1rem; margin-bottom: 1rem;">
+        <button class="filter-pill active" id="btn-arc-sec" onclick="loadArchiveViewer('security')">🛡️ Security Exploits Archive</button>
+        <button class="filter-pill" id="btn-arc-news" onclick="loadArchiveViewer('news')">🌐 Major Web3 News Archive</button>
+        <button class="btn-action" style="margin-left: auto;" onclick="downloadCurrentArchive()">⬇️ Download Raw Markdown</button>
+      </div>
+      <pre class="code-block" id="archive-content" style="max-height: 650px; overflow-y: auto;">Loading archive...</pre>
+    </div>
+  </main>
+
+  <!-- Slide-over Drawer for Case Study & Foundry PoC -->
+  <div class="drawer-overlay" id="drawer-overlay" onclick="closeDrawer(event)">
+    <div class="drawer" onclick="event.stopPropagation()">
+      <div class="drawer-header">
+        <h3 id="drawer-title" style="font-size: 1.1rem; color: #fff;">Incident Detail</h3>
+        <button class="drawer-close" onclick="closeDrawer()">&times;</button>
+      </div>
+      <div class="drawer-body" id="drawer-body"></div>
+    </div>
+  </div>
+
+  <script>
+    let globalStats = {};
+    let currentArchiveType = 'security';
+
+    // Switch Tabs
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      event.target.classList.add('active');
+      document.getElementById('tab-' + tabId).classList.add('active');
+
+      if (tabId === 'incidents') fetchIncidents();
+      if (tabId === 'watchlist') fetchWatchlist();
+      if (tabId === 'archives') loadArchiveViewer(currentArchiveType);
+    }
+
+    // Format currency
+    function fmtMoney(num) {
+      if (!num) return '$0.00';
+      return '$' + Number(num).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    // Fetch Stats
+    async function fetchStats() {
+      try {
+        const res = await fetch('/api/stats');
+        const data = await res.json();
+        globalStats = data;
+
+        document.getElementById('val-total-loss').innerText = fmtMoney(data.total_loss_usd);
+        document.getElementById('val-incidents').innerText = data.incidents_count;
+        document.getElementById('val-classified').innerText = `${data.classified} / ${data.total_articles}`;
+        document.getElementById('val-pending').innerText = data.unclassified;
+        document.getElementById('val-watchlist').innerText = data.watchlist_count;
+
+        renderBars('severity-bars', data.severities, {
+          'CRITICAL': '#ef4444',
+          'HIGH': '#f59e0b',
+          'MEDIUM': '#3b82f6',
+          'LOW': '#10b981',
+          'INFO': '#94a3b8'
+        });
+
+        renderBars('category-bars', data.categories, {
+          'SECURITY_RESEARCH': '#6366f1',
+          'CRITICAL_SECURITY': '#ef4444',
+          'MAJOR_WEB3_NEWS': '#06b6d4',
+          'PROTOCOL_UPDATE': '#10b981',
+          'REGULATION': '#f59e0b'
+        });
+      } catch (err) {
+        console.error("Failed to fetch stats:", err);
+      }
+    }
+
+    function renderBars(containerId, dict, colorMap) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+      container.innerHTML = '';
+      const total = Object.values(dict).reduce((a, b) => a + b, 0) || 1;
+
+      for (const [key, count] of Object.entries(dict)) {
+        const pct = Math.round((count / total) * 100);
+        const color = colorMap[key] || '#6366f1';
+        container.innerHTML += `
+          <div class="bar-item">
+            <div class="bar-label">
+              <span>${key.replace('_', ' ')}</span>
+              <span style="color: ${color}">${count} (${pct}%)</span>
+            </div>
+            <div class="bar-track">
+              <div class="bar-fill" style="width: ${pct}%; background: ${color}"></div>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    // Incidents State
+    let allIncidents = [];
+    let currentPage = 1;
+    let totalPages = 1;
+    let totalCount = 0;
+    let currentLimit = '50';
+    let currentSort = 'date-desc';
+    let currentSeverity = 'ALL';
+    let searchDebounceTimer = null;
+
+    // Fetch Incidents
+    async function fetchIncidents() {
+      const tbody = document.getElementById('incidents-tbody');
+      const search = (document.getElementById('inc-search').value || '').trim();
+
+      const [sortBy, sortOrder] = currentSort.split('-');
+      const params = new URLSearchParams({
+        sort_by: sortBy || 'date',
+        sort_order: sortOrder || 'desc',
+        severity: currentSeverity,
+        search: search,
+        page: currentPage,
+        limit: currentLimit
+      });
+
+      try {
+        const res = await fetch(`/api/incidents?${params.toString()}`);
+        const data = await res.json();
+        allIncidents = data.incidents || [];
+        totalCount = data.total_count || 0;
+        currentPage = data.page || 1;
+        totalPages = data.total_pages || 1;
+
+        renderIncidentsTable();
+        renderPagination();
+      } catch (err) {
+        console.error("Failed to fetch incidents:", err);
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding: 2rem; color: #ef4444;">Failed to load incidents: ${err}</td></tr>`;
+      }
+    }
+
+    function renderPagination() {
+      const info = document.getElementById('pagination-info');
+      const pageNum = document.getElementById('page-num');
+      const pageTotal = document.getElementById('page-total');
+      const btnFirst = document.getElementById('btn-first');
+      const btnPrev = document.getElementById('btn-prev');
+      const btnNext = document.getElementById('btn-next');
+      const btnLast = document.getElementById('btn-last');
+
+      pageNum.innerText = currentPage;
+      pageTotal.innerText = totalPages;
+
+      let start = (currentPage - 1) * (currentLimit === 'all' ? totalCount : parseInt(currentLimit)) + 1;
+      let end = currentLimit === 'all' ? totalCount : Math.min(currentPage * parseInt(currentLimit), totalCount);
+      if (totalCount === 0) { start = 0; end = 0; }
+
+      info.innerText = `Showing ${start.toLocaleString()}–${end.toLocaleString()} of ${totalCount.toLocaleString()} incidents`;
+
+      btnFirst.disabled = currentPage <= 1;
+      btnPrev.disabled = currentPage <= 1;
+      btnNext.disabled = currentPage >= totalPages;
+      btnLast.disabled = currentPage >= totalPages;
+    }
+
+    function goToPage(p) {
+      if (p < 1 || p > totalPages) return;
+      currentPage = p;
+      fetchIncidents();
+    }
+
+    function changeSort(val) {
+      currentSort = val;
+      currentPage = 1;
+      fetchIncidents();
+    }
+
+    function changeLimit(val) {
+      currentLimit = val;
+      currentPage = 1;
+      fetchIncidents();
+    }
+
+    function onSearchChange() {
+      clearTimeout(searchDebounceTimer);
+      searchDebounceTimer = setTimeout(() => {
+        currentPage = 1;
+        fetchIncidents();
+      }, 300);
+    }
+
+    function setSeverityFilter(sev) {
+      currentSeverity = sev;
+      document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+      event.target.classList.add('active');
+      currentPage = 1;
+      fetchIncidents();
+    }
+
+    function renderIncidentsTable() {
+      const tbody = document.getElementById('incidents-tbody');
+
+      if (!allIncidents || allIncidents.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding: 2rem; color: var(--text-muted);">No matching incidents found.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = allIncidents.map(inc => {
+        let badgeClass = 'badge-info';
+        if (inc.severity === 'CRITICAL') badgeClass = 'badge-critical';
+        else if (inc.severity === 'HIGH') badgeClass = 'badge-high';
+        else if (inc.severity === 'MEDIUM') badgeClass = 'badge-medium';
+
+        const lossTxt = inc.estimated_loss_usd > 0 ? fmtMoney(inc.estimated_loss_usd) : '<span style="color:var(--text-muted)">-</span>';
+        const protoTxt = inc.protocol ? `<span class="tag-proto">${escapeHtml(inc.protocol)}</span>` : '<span style="color:var(--text-muted)">Ecosystem</span>';
+        const dateTxt = inc.date_formatted ? `<span class="date-chip">${inc.date_formatted}</span>` : '<span class="date-chip">Historical</span>';
+
+        return `
+          <tr>
+            <td style="font-family: var(--font-mono); color: var(--text-muted)">#${inc.id}</td>
+            <td>${dateTxt}</td>
+            <td><span class="badge ${badgeClass}">${inc.severity}</span></td>
+            <td>${protoTxt}</td>
+            <td style="font-weight: 600; max-width: 320px;">
+              <div style="line-height: 1.3;">${escapeHtml(inc.title)}</div>
+            </td>
+            <td style="font-weight: 700; color: #fff;">${lossTxt}</td>
+            <td style="color: var(--text-muted); font-size: 0.78rem;">${escapeHtml(inc.attack_type || 'Unspecified')}</td>
+            <td>
+              <div style="display:flex; gap:0.35rem; align-items:center; justify-content:center;">
+                ${inc.primary_url ? `
+                  <a href="${escapeHtml(inc.primary_url)}" target="_blank" rel="noopener noreferrer" class="btn-action btn-source" title="Open original advisory / exploit source">
+                    🌐 Source ↗
+                  </a>
+                ` : `
+                  <span class="btn-action btn-source disabled" title="No external source URL recorded">
+                    🌐 Source
+                  </span>
+                `}
+                <button class="btn-action btn-audit" onclick="openIncidentDrawer(${inc.id})" title="View complete technical dossier & PoC">
+                  🔍 Audit View
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // Drawer View
+    async function openIncidentDrawer(incId) {
+      const overlay = document.getElementById('drawer-overlay');
+      const body = document.getElementById('drawer-body');
+      overlay.classList.add('active');
+      body.innerHTML = '<p style="color: var(--text-muted)">Loading technical case study & verified sources...</p>';
+
+      try {
+        const res = await fetch(`/api/incident/${incId}`);
+        const data = await res.json();
+        const inc = data.incident;
+        const primaryUrl = data.primary_url || (data.articles && data.articles[0] ? data.articles[0].url : null);
+
+        document.getElementById('drawer-title').innerText = `Incident #${inc.id}: ${inc.protocol || 'Protocol'}`;
+
+        let html = `
+          <div style="margin-bottom: 1.25rem;">
+            <h2 style="font-size: 1.25rem; font-weight: 800; margin-bottom: 0.6rem; color:#fff;">${escapeHtml(inc.title)}</h2>
+            <div style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:center;">
+              <span class="badge ${inc.severity === 'CRITICAL' ? 'badge-critical' : 'badge-high'}">${inc.severity}</span>
+              <span class="date-chip">📅 ${(inc.first_seen_at || '').slice(0, 10) || 'Historical'}</span>
+              <span style="color: var(--text-muted); font-size: 0.85rem;">Estimated Loss: <b style="color:#fff;">${fmtMoney(inc.estimated_loss_usd)}</b></span>
+            </div>
+          </div>
+        `;
+
+        // Direct Original Link Button
+        if (primaryUrl) {
+          html += `
+            <div style="margin-bottom: 1.5rem;">
+              <a href="${escapeHtml(primaryUrl)}" target="_blank" rel="noopener noreferrer" class="btn-primary-link">
+                <span>🌐 Open Original Advisory / PoC Source (External ↗)</span>
+              </a>
+            </div>
+          `;
+        }
+
+        // Linked Articles & Advisories
+        if (data.articles && data.articles.length > 0) {
+          html += `
+            <div style="margin-bottom: 1.5rem;">
+              <h4 style="color: var(--accent-cyan); margin-bottom: 0.6rem; font-size: 0.9rem; font-weight: 700;">
+                🔗 Verified Source References (${data.articles.length})
+              </h4>
+              <div style="display:flex; flex-direction:column; gap:0.5rem;">
+                ${data.articles.map(a => `
+                  <div class="source-card">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.5rem;">
+                      <a href="${escapeHtml(a.url)}" target="_blank" rel="noopener noreferrer" style="color: #38bdf8; font-weight: 600; text-decoration: none; font-size: 0.85rem; word-break: break-all;">
+                        ${escapeHtml(a.title || a.url)} ↗
+                      </a>
+                      <span style="font-size: 0.72rem; color: var(--text-muted); white-space: nowrap;">${(a.published_at || '').slice(0, 10)}</span>
+                    </div>
+                    ${a.summary ? `<p style="font-size: 0.78rem; color: #94a3b8; margin-top: 0.35rem; line-height: 1.4;">${escapeHtml(a.summary)}</p>` : ''}
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `;
+        }
+
+        // Runnable Foundry PoC
+        if (data.poc_solidity) {
+          html += `
+            <div style="margin-bottom: 1.5rem;">
+              <h4 style="color: var(--accent-cyan); display:flex; justify-content:space-between; align-items:center; margin-bottom: 0.5rem;">
+                <span>🛠️ Runnable Foundry Test Skeleton</span>
+              </h4>
+              <pre class="code-block"><button class="copy-btn" onclick="copyPoC()">Copy .sol</button><code id="poc-code">${escapeHtml(data.poc_solidity)}</code></pre>
+            </div>
+          `;
+        }
+
+        // Deep Analysis / Case Study Report
+        if (data.report_markdown) {
+          html += `
+            <div>
+              <h4 style="color: var(--accent-indigo); margin-bottom: 0.5rem; font-weight: 700;">📄 Deep Auditor Case Study</h4>
+              <pre class="code-block" style="white-space: pre-wrap; font-family: var(--font-sans); font-size: 0.85rem; line-height: 1.6;">${escapeHtml(data.report_markdown)}</pre>
+            </div>
+          `;
+        } else if (inc.deep_analysis) {
+          html += `
+            <div style="margin-bottom: 1.5rem;">
+              <h4 style="color: var(--accent-indigo); margin-bottom: 0.5rem; font-weight: 700;">📄 Deep Technical Analysis</h4>
+              <pre class="code-block" style="white-space: pre-wrap; font-family: var(--font-sans); font-size: 0.85rem; line-height: 1.6;">${escapeHtml(inc.deep_analysis)}</pre>
+            </div>
+          `;
+        } else {
+          html += `
+            <div class="source-card" style="margin-top: 1rem; border-color: rgba(99, 102, 241, 0.3);">
+              <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.6rem;">
+                Detailed dossier not pre-compiled on disk for this record.
+              </p>
+              <button class="btn-action" style="background: var(--accent-indigo); padding: 0.5rem 1rem;" onclick="askAboutIncident('${escapeHtml(inc.protocol || inc.title)}', ${inc.id})">
+                🤖 Ask Auditor AI about Incident #${inc.id}
+              </button>
+            </div>
+          `;
+        }
+
+        body.innerHTML = html;
+      } catch (err) {
+        body.innerHTML = `<p style="color:#ef4444">Failed to load incident detail: ${err}</p>`;
+      }
+    }
+
+    function askAboutIncident(proto, incId) {
+      closeDrawer();
+      switchTab('qa');
+      const input = document.getElementById('qa-input');
+      input.value = `Explain the root cause and attack vector for ${proto} (Incident #${incId})`;
+      sendQAMessage();
+    }
+
+    function closeDrawer(e) {
+      document.getElementById('drawer-overlay').classList.remove('active');
+    }
+
+    function copyPoC() {
+      const code = document.getElementById('poc-code').innerText;
+      navigator.clipboard.writeText(code);
+      event.target.innerText = 'Copied!';
+      setTimeout(() => event.target.innerText = 'Copy .sol', 2000);
+    }
+
+    function escapeHtml(text) {
+      if (!text) return '';
+      return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    // Watchlist
+    async function fetchWatchlist() {
+      const res = await fetch('/api/watchlist');
+      const data = await res.json();
+      const container = document.getElementById('watchlist-chips');
+      if (!data.keywords || data.keywords.length === 0) {
+        container.innerHTML = `<p style="color: var(--text-muted)">No active VIP targets. Add one above!</p>`;
+        return;
+      }
+      container.innerHTML = data.keywords.map(kw => `
+        <span class="watch-chip">
+          <span>${escapeHtml(kw)}</span>
+          <button class="chip-del" data-kw="${encodeURIComponent(kw)}" onclick="deleteWatchKeyword(decodeURIComponent(this.dataset.kw))">&times;</button>
+        </span>
+      `).join('');
+    }
+
+    async function addWatchKeyword() {
+      const input = document.getElementById('new-watch-input');
+      const kw = input.value.trim();
+      if (!kw) return;
+      await fetch('/api/watchlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keyword: kw })
+      });
+      input.value = '';
+      fetchWatchlist();
+      fetchStats();
+    }
+
+    async function deleteWatchKeyword(kw) {
+      await fetch(`/api/watchlist/${encodeURIComponent(kw)}`, { method: 'DELETE' });
+      fetchWatchlist();
+      fetchStats();
+    }
+
+    // Q&A
+    async function sendQAMessage() {
+      const input = document.getElementById('qa-input');
+      const q = input.value.trim();
+      if (!q) return;
+      input.value = '';
+
+      const container = document.getElementById('qa-messages');
+      container.innerHTML += `<div class="qa-bubble user">${escapeHtml(q)}</div>`;
+      const loadingBubble = document.createElement('div');
+      loadingBubble.className = 'qa-bubble bot';
+      loadingBubble.innerHTML = '<i>⚡ Auditor AI is researching smart-contract mechanics & vulnerability intelligence...</i>';
+      container.appendChild(loadingBubble);
+      container.scrollTop = container.scrollHeight;
+
+      try {
+        const res = await fetch('/api/ask', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question: q })
+        });
+        const data = await res.json();
+        loadingBubble.innerHTML = data.answer || 'No response returned.';
+      } catch (err) {
+        loadingBubble.innerHTML = `<span style="color:#ef4444">Error: ${err}</span>`;
+      }
+      container.scrollTop = container.scrollHeight;
+    }
+
+    // Archives viewer
+    async function loadArchiveViewer(type) {
+      currentArchiveType = type;
+      document.getElementById('btn-arc-sec').classList.toggle('active', type === 'security');
+      document.getElementById('btn-arc-news').classList.toggle('active', type === 'news');
+      const container = document.getElementById('archive-content');
+      container.innerText = 'Loading markdown archive...';
+      try {
+        const res = await fetch(`/api/archive/${type}`);
+        container.innerText = await res.text();
+      } catch (err) {
+        container.innerText = 'Failed to load archive: ' + err;
+      }
+    }
+
+    function downloadCurrentArchive() {
+      const content = document.getElementById('archive-content').innerText;
+      const blob = new Blob([content], { type: 'text/markdown' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `archive_${currentArchiveType}.md`;
+      a.click();
+    }
+
+    // Initialize
+    fetchStats();
+  </script>
+</body>
+</html>

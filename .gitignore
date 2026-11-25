@@ -1,0 +1,55 @@
+# ============================================================
+# .gitignore — Web3 Security Radar
+# ============================================================
+
+# Secrets & Environment
+.env
+.env.*
+!.env.example
+
+# SQLite Database & WAL/SHM sidecar files
+data/*.db*
+data/*.sqlite*
+!data/.gitkeep
+
+# Logs
+logs/*.log*
+!logs/.gitkeep
+
+# Generated Runtime Reports, Archives & Foundry PoCs
+reports/*.md
+!reports/.gitkeep
+pocs/*.sol
+!pocs/.gitkeep
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.egg
+.venv/
+venv/
+env/
+
+# IDE & Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Docker
+.docker/
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
