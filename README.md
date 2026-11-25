@@ -215,7 +215,7 @@ Run via `python -m app.main <command>` (or `python -m app <command>`):
 | `classify` | `[N\|all]` | Classify up to `N` unclassified articles (default `20`, or `all`) via Gemini |
 | `status` | — | Print database totals, source health, category breakdown, top articles, and multi-source incidents |
 | `analyze` | `[INCIDENT_ID]` | Generate a Deep Auditor Case Study Markdown report (`reports/`) and Telegram briefing (defaults to latest unanalyzed incident) |
-| `poc` | `[INCIDENT_ID]` | Generate a runnable Foundry PoC test skeleton (`pocs/`) for an incident |
+| `poc` | `[INCIDENT_ID]` | Generate a Foundry PoC test skeleton (`pocs/`) for an incident (defaults to latest `CRITICAL`/`HIGH`) |
 | `ask` | `<QUERY>` | Ask Auditor AI a technical smart-contract security question (references `#<id>` pull local DB context) |
 | `digest` | `[YYYY-MM-DD] [--force] [--no-telegram]` | Compile Daily Security Digest (`reports/digest_YYYY-MM-DD.md`) and optionally send to Telegram |
 | `backfill-archives` | — | Rebuild `reports/archive_security.md` and `reports/archive_news.md` from SQLite |
@@ -253,11 +253,11 @@ Every incident alert card also attaches **Inline Action Buttons** (`📄 Case St
 
 Running `python -m app.main web` or `python -m app.main daemon` launches an `aiohttp` single-page dashboard at `http://127.0.0.1:8000` with five views:
 
-1. **Overview**: Cumulative tracked USD losses, incident counts, classification progress, severity breakdown, and category bars.
-2. **Incidents Explorer**: Searchable, paginated table filterable by severity (`CRITICAL`, `HIGH`, `MEDIUM`, `LOW`) and sortable by date, loss, severity, or ID, with a slide-over drawer displaying source links, Markdown case studies, and copyable Foundry PoC `.sol` code.
+1. **Overview**: Cumulative tracked USD losses, corroborated incident counts, AI classification progress, VIP watchlist count, severity breakdown, and category bars.
+2. **Incidents & Exploits**: Searchable, paginated table filterable by severity (`CRITICAL`, `HIGH`, `MEDIUM`, `INFO`/Research) and sortable by date, loss, severity, or ID, with a slide-over drawer displaying source links, Markdown case studies, and copyable Foundry PoC `.sol` code.
 3. **VIP Watchlist**: Add or remove watched protocols and attack keywords.
-4. **Auditor AI Q&A**: Interactive in-browser technical security chat backed by `ask_auditor()`.
-5. **Archives**: View and download raw `archive_security.md` and `archive_news.md` files.
+4. **Auditor Q&A**: Interactive in-browser technical security chat backed by `ask_auditor()`.
+5. **Knowledge Archives**: View and download raw `archive_security.md` and `archive_news.md` files.
 
 <details>
 <summary>🔌 JSON & HTTP Endpoints exposed by app/web/server.py</summary>
